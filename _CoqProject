@@ -1,6 +1,5 @@
 -I src
--Q theories LOGICAL_PATH_TO_PLUGIN
+-R theories TacStringIdent
 
-./src/name_plugin.ml4
-
+./src/tacstringident.ml4
 ./theories/Plugin.v

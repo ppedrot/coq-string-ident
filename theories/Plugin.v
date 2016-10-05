@@ -1,3 +1,3 @@
-(** Require any files that your plugin needs, e.g. other plugins **)
+Require String.
 
-Declare ML Module "name_plugin". (** FIXME **)
+Declare ML Module "tacstringident".
