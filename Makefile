@@ -8,7 +8,7 @@ clean: Makefile.coq
 	rm -f Makefile.coq
 
 Makefile.coq: _CoqProject
-	$(COQBIN)/coq_makefile -f _CoqProject -o Makefile.coq
+	coq_makefile -f _CoqProject -o Makefile.coq
 
 .merlin:
 	cp .tools/merlin .merlin
