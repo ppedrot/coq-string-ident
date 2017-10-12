@@ -14,5 +14,6 @@
 *.cma
 *.mllib.d
 Makefile.coq
+Makefile.coq.conf
 *.aux
 .coq-native
