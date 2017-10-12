@@ -3,6 +3,9 @@ COQLIB=$(subst /,\/,$(shell coqc -where))
 all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
+install: Makefile.coq
+	$(MAKE) -f Makefile.coq install
+
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq
