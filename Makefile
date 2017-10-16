@@ -1,7 +1,14 @@
 COQLIB=$(subst /,\/,$(shell coqc -where))
 
+ifeq "$(COQBIN)" ""
+  COQBIN=$(dir $(shell which coqtop))/
+endif
+
 all: Makefile.coq
 	$(MAKE) -f Makefile.coq
+
+install: Makefile.coq
+	$(MAKE) -f Makefile.coq install
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean

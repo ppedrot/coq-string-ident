@@ -1,6 +1,6 @@
+open Ltac_plugin
 open Pp
-open Util
-open Constrarg
+open Stdarg
 open Names
 open String_syntax_plugin.String_syntax
 open Constrexpr
@@ -33,7 +33,7 @@ let interp ist c = match (uninterp_string c) with
       (Tacticals.New.tclZEROMSG (str "The string '" ++ str s ++ str "' is not a valid identifier"))
   else
     let open Misctypes in
-    let r = (Loc.ghost, IntroNaming (IntroIdentifier (Id.of_string s))) in
+    let r = (None, IntroNaming (IntroIdentifier (Id.of_string s))) in
     let r = Geninterp.Val.inject ipattern_tag r in
     Ftactic.return r
 
@@ -46,7 +46,7 @@ let () = Pptactic.declare_extra_genarg_pprule wit_ident_of_string
 
 open Pcoq
 open Pcoq.Constr
-open Pcoq.Tactic
+open Pltac
 
 let inj c = TacGeneric (Genarg.in_gen (Genarg.rawwit wit_ident_of_string) c)
 
