@@ -1,0 +1,111 @@
+DECLARE PLUGIN "tacstringident"
+
+{
+
+open Ltac_plugin
+open Pp
+open Tacarg
+open Names
+open Constr
+open EConstr
+open Constrexpr
+open Tacexpr
+
+type repr = {
+  repr_nil : GlobRef.t;
+  repr_cons : GlobRef.t;
+  repr_ascii : GlobRef.t;
+  repr_bit0 : GlobRef.t;
+  repr_bit1 : GlobRef.t;
+}
+
+let pr_ident_of_string _ _ _ _ _ _ = mt ()
+
+let wit_ident_of_string : (constr_expr, Genintern.glob_constr_and_expr, intro_pattern) Genarg.genarg_type =
+  Genarg.make0 "ident_of_string"
+
+let intern ist (c : constr_expr) =
+  let c = Tacintern.intern_constr ist c in
+  (ist, c)
+
+let subst subst c = Tacsubst.subst_glob_constr_and_expr subst c
+
+let ipattern_tag = Geninterp.val_tag (Genarg.topwit wit_intro_pattern)
+
+let get_repr () = {
+  repr_ascii = Coqlib.lib_ref "stringident.ascii";
+  repr_nil = Coqlib.lib_ref "stringident.nil";
+  repr_cons = Coqlib.lib_ref "stringident.cons";
+  repr_bit0 = Coqlib.lib_ref "stringident.bit0";
+  repr_bit1 = Coqlib.lib_ref "stringident.bit1";
+}
+
+exception NotAString
+
+let uninterp_bool r sigma c =
+  if is_global sigma r.repr_bit0 c then 0
+  else if is_global sigma r.repr_bit1 c then 1
+  else raise NotAString
+
+let uninterp_ascii r sigma c = match kind sigma c with
+| App (c, args) ->
+  if is_global sigma r.repr_ascii c && Array.length args == 8 then
+    let fold i accu c =
+      let v = uninterp_bool r sigma c in
+      accu lor (v lsl i)
+    in
+    let chr = CArray.fold_left_i fold 0 args in
+    String.make 1 (Char.chr chr)
+  else raise NotAString
+| _ -> raise NotAString
+
+let rec uninterp_string r accu sigma c = match kind sigma c with
+| App (c, args) ->
+  let len = Array.length args in
+  if is_global sigma r.repr_cons c && len >= 2 then
+    let char = uninterp_ascii r sigma args.(len - 2) in
+    uninterp_string r (char :: accu) sigma args.(len - 1)
+  else
+    raise NotAString
+| _ ->
+  if is_global sigma r.repr_nil c then accu
+  else raise NotAString
+
+let interp ist c =
+  Ftactic.enter begin fun gl ->
+  let env = Proofview.Goal.env gl in
+  let sigma = Proofview.Goal.sigma gl in
+  let sigma, c = Tacinterp.interp_constr_gen Pretyping.WithoutTypeConstraint ist env sigma c in
+  let r = get_repr () in
+  match uninterp_string r [] sigma c with
+  | exception NotAString ->
+    Ftactic.lift
+      (Tacticals.New.tclZEROMSG (str "The term does not represent a string"))
+  | s ->
+    let s = CString.implode (List.rev s) in
+    if not (Id.is_valid s) then
+      Ftactic.lift
+        (Tacticals.New.tclZEROMSG (str "The string '" ++ str s ++ str "' is not a valid identifier"))
+    else
+      let r = CAst.make @@ Tactypes.IntroNaming (Namegen.IntroIdentifier (Id.of_string s)) in
+      let r = Geninterp.Val.inject ipattern_tag r in
+      Ftactic.return r
+  end
+
+let () = Genintern.register_intern0 wit_ident_of_string intern
+let () = Genintern.register_subst0 wit_ident_of_string subst
+let () = Geninterp.register_interp0 wit_ident_of_string interp
+let () = Geninterp.register_val0 wit_ident_of_string (Some ipattern_tag)
+let () = Pptactic.declare_extra_genarg_pprule wit_ident_of_string
+  pr_ident_of_string pr_ident_of_string pr_ident_of_string
+
+open Pcoq.Constr
+
+let inj c = TacGeneric (Genarg.in_gen (Genarg.rawwit wit_ident_of_string) c)
+
+}
+
+GRAMMAR EXTEND Gram
+  Pltac.tactic_arg :
+  [ [ IDENT "ident_of_string"; c = constr -> { inj c } ] ];
+END

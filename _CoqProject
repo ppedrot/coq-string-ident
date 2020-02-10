@@ -1,5 +1,5 @@
 -I src
 -R theories TacStringIdent
 
-./src/tacstringident.ml4
+./src/tacstringident.mlg
 ./theories/Plugin.v
